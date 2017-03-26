@@ -10,6 +10,10 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 import net.floodlightcontroller.packet.*;
+import net.floodlightcontroller.packet.ICMP;
+import net.floodlightcontroller.pakcet.UDP;
+import net.floodlightcontroller.pakcet.RIPv2;
+
 /**
  * @author Aaron Gember-Jacobson and Anubhavnidhi Abhashkumar
  */
@@ -43,6 +47,12 @@ public class Router extends Device
 	public RouteTable getRouteTable()
 	{ return this.routeTable; }
 	
+	public void createRouteTable() {
+		for( Iface iface : this.interfaces.values() ) {
+			RouteEntry entry = new RouteEntry( iface.getIpAddress(), IPv4.toIPv4Address( "0.0.0.0" ), iface.getSubnetMask(), iface ); 	
+			routeTable.insert( entry );
+		}
+	}
 	/**
 	 * Load a new routing table from a file.
 	 * @param routeTableFile the name of the file containing the routing table
@@ -130,9 +140,23 @@ public class Router extends Device
         ipPacket.setTtl((byte)(ipPacket.getTtl()-1));
         if (0 == ipPacket.getTtl())
         { 
-	//error message
-	return; }
+			ICMPMessage.sendTimeExceeded( this, etherPacket, routeTable, arpCache, inIface );
+			return; 
+		}
         
+		  if( ipPacket.getProtocol() == IPv4.PROTOCOL_UDP ) {
+		  	UDP udp = (UDP)ipPacket.getPayload();
+		  	if( udp.getSourcePort() == UDP.RIP_PORT && udp.getDestinationPort() == UDP.RIP_PORT ) {
+				RIPv2 rip = (RIPv2)udp.getPayload();
+				if( rip.getCommand( RIPv2.COMMAND_REQUEST ) ) {
+					ripHandler.handleRequest( this, etherPacket, inIface );
+				}
+				else if( rip.getCommand( RIPv2.COMMAND_RESPONSE ) ) {
+					ripHandler.handleResponse( this, rip, inIface );
+				}
+			}
+		  }
+
         // Reset checksum now that TTL is decremented
         ipPacket.resetChecksum();
         
@@ -140,7 +164,19 @@ public class Router extends Device
         for (Iface iface : this.interfaces.values())
         {
         	if (ipPacket.getDestinationAddress() == iface.getIpAddress())
-        	{ return; }
+        	{ 
+				if( ipPacket.getProtocol() == IPv4.PROTOCOL_TCP || ipPacket.getProtocol() == IPv4.PROTOCOL_UDP ) {
+					ICMPMessage.sendDestinationPortUnreachable( this, etherPacket, routeTable, arpCache, inIface );	
+				}
+				else if( ipPacket.getProtocol() == IPv4.PROTOCOL_ICMP ) {
+					ICMP temp = (ICMP)ipPacket.getPayload();
+					if( temp.getIcmpType() == 8 ) {
+						ICMPMessage.sendEchoReply( this, etherPacket, routeTable, arpCache, inIface );	
+					}
+				}
+				return;
+			}
+
         }
 		
         // Do route lookup and forward
@@ -163,7 +199,11 @@ public class Router extends Device
 
         // If no entry matched, do nothing
         if (null == bestMatch)
-        { return; }
+        {
+			ICMPMessage.sendDestinationNetUnreachable( this, etherPacket, routeTable, arpCache, inIface );
+		  	return; 
+			}
+
 
         // Make sure we don't sent a packet back out the interface it came in
         Iface outIface = bestMatch.getInterface();
@@ -182,8 +222,11 @@ public class Router extends Device
         ArpEntry arpEntry = this.arpCache.lookup(nextHop);
         if (null == arpEntry)
         { 
-	ArpLost(nextHop, etherPacket, inIface, outIface);	
-	return; }
+			ArpLost(nextHop, etherPacket, inIface, outIface);	
+			ICMPMessage.sendDestinationHostUnreachable( this, etherPacket, routeTable, arpCache, inIface );
+		  	return; 
+			}
+
         etherPacket.setDestinationMACAddress(arpEntry.getMac().toBytes());
         
         this.sendPacket(etherPacket, outIface);

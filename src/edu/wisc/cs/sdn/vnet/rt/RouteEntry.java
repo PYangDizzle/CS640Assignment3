@@ -21,6 +21,9 @@ public class RouteEntry
 	/** Router interface out which packets should be sent to reach
 	 * the destination or gateway */
 	private Iface iface;
+
+	/** Number of hops, used as a metric	*/
+	private int numHops;
 	
 	/**
 	 * Create a new route table entry.
@@ -37,8 +40,21 @@ public class RouteEntry
 		this.gatewayAddress = gatewayAddress;
 		this.maskAddress = maskAddress;
 		this.iface = iface;
+		this.numHops = 0;
+	}
+
+	public void incNumHops() {
+		this.numHops++;
+	}
+
+	public void setNumHops( int numHops ) {
+		this.numHops = numHops;
 	}
 	
+	public int getNumHops() {
+		return this.numHops;
+	}
+
 	/**
 	 * @return destination IP address
 	 */
