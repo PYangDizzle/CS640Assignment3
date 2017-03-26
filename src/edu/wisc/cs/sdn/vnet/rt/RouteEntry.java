@@ -3,6 +3,9 @@ package edu.wisc.cs.sdn.vnet.rt;
 import net.floodlightcontroller.packet.IPv4;
 import edu.wisc.cs.sdn.vnet.Iface;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 /**
  * An entry in a route table.
  * @author Aaron Gember-Jacobson and Anubhavnidhi Abhashkumar
@@ -24,6 +27,9 @@ public class RouteEntry
 
 	/** Number of hops, used as a metric	*/
 	private int numHops;
+
+	private Timer timer;
+	private RouteTable table;
 	
 	/**
 	 * Create a new route table entry.
@@ -34,13 +40,44 @@ public class RouteEntry
 	 *        be sent to reach the destination or gateway
 	 */
 	public RouteEntry(int destinationAddress, int gatewayAddress, 
-			int maskAddress, Iface iface)
+			int maskAddress, Iface iface, RouteTable table)
 	{
 		this.destinationAddress = destinationAddress;
 		this.gatewayAddress = gatewayAddress;
 		this.maskAddress = maskAddress;
 		this.iface = iface;
+		this.talbe = table;
 		this.numHops = 0;
+		if( gatewwayAddress == 0 ) {
+			timer = null;
+		}
+		else {
+			timer = new Timer();
+			timer.scheduleAtFixedRate( new TimerTask() {
+				void run() {
+					synchronized( table ) {
+						table.remove( this.destinationAddress, this.maskAddress );	
+						timer.cancel();
+						timer.purge();	
+					}
+				}
+			}, 0, 30000 ); // 30 sec
+		}
+	}
+
+	public void resetTimer() {
+		timer.cancel();
+		timer.purge();
+		timer = new Timer();
+		timer.scheduleAtFixedRate( new TimerTask() {
+			void run() {
+				synchronized( table ) {
+					table.remove( this.destinationAddress, this.maskAddress );	
+					timer.cancel();
+					timer.purge();	
+				}
+			}
+		}, 0, 30000 ); // 30 sec
 	}
 
 	public void incNumHops() {

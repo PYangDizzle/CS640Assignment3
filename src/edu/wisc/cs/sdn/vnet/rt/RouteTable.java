@@ -165,7 +165,7 @@ public class RouteTable
 	 */
 	public void insert(int dstIp, int gwIp, int maskIp, Iface iface)
 	{
-		RouteEntry entry = new RouteEntry(dstIp, gwIp, maskIp, iface);
+		RouteEntry entry = new RouteEntry(dstIp, gwIp, maskIp, iface, this);
         synchronized(this.entries)
         { 
             this.entries.add(entry);
@@ -174,7 +174,7 @@ public class RouteTable
 
 	public void insertFromResponse(int dstIp, int gwIp, int maskIp, Iface iface, int numHops)
 	{
-		RouteEntry entry = new RouteEntry(dstIp, gwIp, maskIp, iface);
+		RouteEntry entry = new RouteEntry(dstIp, gwIp, maskIp, iface, this);
 		entry.setNumHops( numHops );
         synchronized(this.entries)
         { 
@@ -236,6 +236,7 @@ public class RouteTable
             entry.setGatewayAddress(gwIp);
             entry.setInterface(iface);
 				entry.setNumHops( numHops + 1 );
+				entry.resetTimer();
         }
         return 0;
 	}
