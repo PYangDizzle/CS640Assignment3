@@ -1,12 +1,18 @@
-package edu.wisc.cs.cs.sdn.vnet.rt;
+package edu.wisc.cs.sdn.vnet.rt;
+
+import edu.wisc.cs.sdn.vnet.Iface;
 
 import net.floodlightcontroller.packet.RIPv2;
 import net.floodlightcontroller.packet.RIPv2Entry;
-import net.floodlightcontroller.packet.UDP;
 
-class RIPTable() {
+import net.floodlightcontroller.packet.UDP;
+import net.floodlightcontroller.packet.IPv4;
+import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.packet.ICMP;
+
+class RIPTable {
 	void initialize( Router router ) {
-		for( Iface iface : router.interfaces.values() ) {
+		for( Iface iface : router.getInterfaces().values() ) {
 			sendRIPRequest( router, iface );
 		}
 	}
@@ -30,13 +36,13 @@ class RIPTable() {
 		ip.setSourceAddress( iface.getIpAddress() );	
 		//ip.serialize();
 
-		udp.setSourcePort( RIP_PORT );
-		udp.setDestinationPort( RIP_PORT );
+		udp.setSourcePort( UDP.RIP_PORT );
+		udp.setDestinationPort( UDP.RIP_PORT );
 		//udp.serialize();
 
-		rip.setCommand( COMMAND_REQUEST );
+		rip.setCommand( RIPv2.COMMAND_REQUEST );
 		//rip.serialize();
 	}
 
-	void sendRIPResponse
+	void sendRIPResponse(){}
 }

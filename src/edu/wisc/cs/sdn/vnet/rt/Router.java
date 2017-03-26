@@ -6,6 +6,7 @@ import edu.wisc.cs.sdn.vnet.Iface;
 
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPv4;
+import net.floodlightcontroller.packet.ICMP;
 
 /**
  * @author Aaron Gember-Jacobson and Anubhavnidhi Abhashkumar
@@ -132,7 +133,7 @@ public class Router extends Device
         {
         	if (ipPacket.getDestinationAddress() == iface.getIpAddress())
         	{ 
-				if( ipPacket.getProtocol() == IPv4.PROTOCOL_TCP || ipPacket.getPRotocol() == IPv4.PROTOCOL_UDP ) {
+				if( ipPacket.getProtocol() == IPv4.PROTOCOL_TCP || ipPacket.getProtocol() == IPv4.PROTOCOL_UDP ) {
 					ICMPMessage.sendDestinationPortUnreachable( this, etherPacket, routeTable, arpCache, inIface );	
 				}
 				else if( ipPacket.getProtocol() == IPv4.PROTOCOL_ICMP ) {
