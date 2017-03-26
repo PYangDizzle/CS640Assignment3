@@ -28,11 +28,15 @@ public class RouteTable
 	public RouteTable()
 	{ this.entries = new LinkedList<RouteEntry>(); }
 	
+	public List<RouteEntry> getEntries() {
+		return entries;	
+	}
 	/**
 	 * Lookup the route entry that matches a given IP address.
 	 * @param ip IP address
 	 * @return the matching route entry, null if none exists
 	 */
+
 	public RouteEntry lookup(int ip)
 	{
 		synchronized(this.entries)
@@ -167,7 +171,16 @@ public class RouteTable
             this.entries.add(entry);
         }
 	}
-	
+
+	public void insertFromResponse(int dstIp, int gwIp, int maskIp, Iface iface, int numHops)
+	{
+		RouteEntry entry = new RouteEntry(dstIp, gwIp, maskIp, iface);
+		entry.setNumHops( numHops );
+        synchronized(this.entries)
+        { 
+            this.entries.add(entry);
+        }
+	}
 	/**
 	 * Remove an entry from the route table.
 	 * @param dstIP destination IP of the entry to remove
@@ -195,7 +208,7 @@ public class RouteTable
      * @return true if a matching entry was found and updated, otherwise false
 	 */
 	public boolean update(int dstIp, int maskIp, int gwIp, 
-            Iface iface)
+            Iface iface )
 	{
         synchronized(this.entries)
         {
@@ -208,6 +221,24 @@ public class RouteTable
         return true;
 	}
 
+	public int updateFromResponse(int dstIp, int maskIp, int gwIp, 
+            Iface iface, int numHops)
+	{
+        synchronized(this.entries)
+        {
+            RouteEntry entry = this.find(dstIp, maskIp);
+            if (null == entry) { 
+					insertFromResponse( dstIp, gwIp, maskIp, iface, numHops + 1 );
+				}
+				if( entry.getNumHops() < numHops + 1 ) {
+					return -1;
+				}
+            entry.setGatewayAddress(gwIp);
+            entry.setInterface(iface);
+				entry.setNumHops( numHops + 1 );
+        }
+        return 0;
+	}
     /**
 	 * Find an entry in the route table.
 	 * @param dstIP destination IP of the entry to find

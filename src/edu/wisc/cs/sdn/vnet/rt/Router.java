@@ -7,6 +7,8 @@ import edu.wisc.cs.sdn.vnet.Iface;
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPv4;
 import net.floodlightcontroller.packet.ICMP;
+import net.floodlightcontroller.pakcet.UDP;
+import net.floodlightcontroller.pakcet.RIPv2;
 
 /**
  * @author Aaron Gember-Jacobson and Anubhavnidhi Abhashkumar
@@ -36,6 +38,12 @@ public class Router extends Device
 	public RouteTable getRouteTable()
 	{ return this.routeTable; }
 	
+	public void createRouteTable() {
+		for( Iface iface : this.interfaces.values() ) {
+			RouteEntry entry = new RouteEntry( iface.getIpAddress(), IPv4.toIPv4Address( "0.0.0.0" ), iface.getSubnetMask(), iface ); 	
+			routeTable.insert( entry );
+		}
+	}
 	/**
 	 * Load a new routing table from a file.
 	 * @param routeTableFile the name of the file containing the routing table
@@ -125,6 +133,19 @@ public class Router extends Device
 			return; 
 		}
         
+		  if( ipPacket.getProtocol() == IPv4.PROTOCOL_UDP ) {
+		  	UDP udp = (UDP)ipPacket.getPayload();
+		  	if( udp.getSourcePort() == UDP.RIP_PORT && udp.getDestinationPort() == UDP.RIP_PORT ) {
+				RIPv2 rip = (RIPv2)udp.getPayload();
+				if( rip.getCommand( RIPv2.COMMAND_REQUEST ) ) {
+					ripHandler.handleRequest( this, etherPacket, inIface );
+				}
+				else if( rip.getCommand( RIPv2.COMMAND_RESPONSE ) ) {
+					ripHandler.handleResponse( this, rip, inIface );
+				}
+			}
+		  }
+
         // Reset checksum now that TTL is decremented
         ipPacket.resetChecksum();
         
