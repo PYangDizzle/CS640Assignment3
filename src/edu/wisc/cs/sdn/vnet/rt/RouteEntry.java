@@ -46,17 +46,17 @@ public class RouteEntry
 		this.gatewayAddress = gatewayAddress;
 		this.maskAddress = maskAddress;
 		this.iface = iface;
-		this.talbe = table;
+		this.table = table;
 		this.numHops = 0;
-		if( gatewwayAddress == 0 ) {
+		if( gatewayAddress == 0 ) {
 			timer = null;
 		}
 		else {
 			timer = new Timer();
 			timer.scheduleAtFixedRate( new TimerTask() {
-				void run() {
+				public void run() {
 					synchronized( table ) {
-						table.remove( this.destinationAddress, this.maskAddress );	
+						table.remove( destinationAddress, maskAddress );	
 						timer.cancel();
 						timer.purge();	
 					}
@@ -70,9 +70,9 @@ public class RouteEntry
 		timer.purge();
 		timer = new Timer();
 		timer.scheduleAtFixedRate( new TimerTask() {
-			void run() {
+			public void run() {
 				synchronized( table ) {
-					table.remove( this.destinationAddress, this.maskAddress );	
+					table.remove( destinationAddress, maskAddress );	
 					timer.cancel();
 					timer.purge();	
 				}

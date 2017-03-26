@@ -11,8 +11,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import net.floodlightcontroller.packet.*;
 import net.floodlightcontroller.packet.ICMP;
-import net.floodlightcontroller.pakcet.UDP;
-import net.floodlightcontroller.pakcet.RIPv2;
+import net.floodlightcontroller.packet.UDP;
+import net.floodlightcontroller.packet.RIPv2;
 
 /**
  * @author Aaron Gember-Jacobson and Anubhavnidhi Abhashkumar
@@ -29,6 +29,7 @@ public class Router extends Device
 	private final String MAC_BROADCAST = "FF:FF:FF:FF:FF:FF";
 	private final String MAC_ZERO = "00:00:00:00:00:00";
 	private Map<Integer, List<Ethernet>> arpQueues;
+	private RIPHandler ripHandler;
 	/**
 	 * Creates a router for a specific host.
 	 * @param host hostname for the router
@@ -39,6 +40,8 @@ public class Router extends Device
 		this.routeTable = new RouteTable();
 		this.arpCache = new ArpCache();
 		this.arpQueues = new ConcurrentHashMap<Integer, List<Ethernet>>();
+		this.ripHandler = new RIPHandler();
+		ripHandler.initialize( this );
 	}
 	
 	/**
@@ -49,8 +52,9 @@ public class Router extends Device
 	
 	public void createRouteTable() {
 		for( Iface iface : this.interfaces.values() ) {
-			RouteEntry entry = new RouteEntry( iface.getIpAddress(), IPv4.toIPv4Address( "0.0.0.0" ), iface.getSubnetMask(), iface ); 	
-			routeTable.insert( entry );
+			//RouteEntry entry = new RouteEntry( iface.getIpAddress(), IPv4.toIPv4Address( "0.0.0.0" ), iface.getSubnetMask(), iface ); 	
+			//routeTable.insert( entry );
+			routeTable.insert(iface.getIpAddress(), IPv4.toIPv4Address( "0.0.0.0" ), iface.getSubnetMask(), iface ); 
 		}
 	}
 	/**
@@ -148,10 +152,10 @@ public class Router extends Device
 		  	UDP udp = (UDP)ipPacket.getPayload();
 		  	if( udp.getSourcePort() == UDP.RIP_PORT && udp.getDestinationPort() == UDP.RIP_PORT ) {
 				RIPv2 rip = (RIPv2)udp.getPayload();
-				if( rip.getCommand( RIPv2.COMMAND_REQUEST ) ) {
+				if( rip.getCommand() ==RIPv2.COMMAND_REQUEST ) {
 					ripHandler.handleRequest( this, etherPacket, inIface );
 				}
-				else if( rip.getCommand( RIPv2.COMMAND_RESPONSE ) ) {
+				else if( rip.getCommand() == RIPv2.COMMAND_RESPONSE  ) {
 					ripHandler.handleResponse( this, rip, inIface );
 				}
 			}

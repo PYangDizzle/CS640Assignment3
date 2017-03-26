@@ -24,8 +24,8 @@ class RIPHandler {
 			sendRequest( router, iface );
 		}
 		timer.scheduleAtFixedRate( new TimerTask() {
-			@override
-			void run() {
+			@Override
+			public void run() {
 				sendResponsesAll( router );	
 			}
 		}, 0, 10000); // 10 sec
@@ -79,7 +79,7 @@ class RIPHandler {
 
 		ip.setTtl( (byte)64 ).setProtocol( IPv4.PROTOCOL_UDP );
 		if( original != null ) {
-			ip.setDestinationAddress( (IPv4)original.getPayload().getSourceAddress() ); 
+			ip.setDestinationAddress( ((IPv4)original.getPayload()).getSourceAddress() ); 
 		}
 		else {
 			ip.setDestinationAddress( IPv4.toIPv4Address( "224.0.0.9" ) ); 
@@ -106,7 +106,7 @@ class RIPHandler {
 	void handleResponse( Router router, RIPv2 rip, Iface inIface ) {
 		RouteTable routeTable = router.getRouteTable();
 		for( RIPv2Entry entry : rip.getEntries() ) {
-			routeTable.updateFromResponse( entry.getAddress(), entry.getSubnetMask(), entry.getNextHoopAddress(), inIface, entry.getNumHops() ); 
+			routeTable.updateFromResponse( entry.getAddress(), entry.getSubnetMask(), entry.getNextHopAddress(), inIface, entry.getMetric() ); 
 		}
 	}
 
